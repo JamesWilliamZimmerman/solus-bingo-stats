@@ -14,11 +14,11 @@
     - Google sheet
         - Example sheet included
         - May require updates for EHX values
+- Run ```pipenv shell```
 - Update WOM competition ID 
     - Optionally create WOM api key
     - Run ```export WOM_API_KEY=XXXXXXXXXX```
     - Run ```export USER_AGENT=discord_username```
-- Run ```pipenv shell```
 - Run ```python run_all.py```
 
 Happy bingo!
