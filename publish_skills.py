@@ -61,9 +61,7 @@ def main() -> None:
 
     SPREADSHEET_ID = '1i7OSaNlZIUyLtgLmXV4F9S-UIYhMWg8DLRb11BbAX-U'
 
-    current_time = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-
-    sheet_title = f"Skilling Report {current_time}"
+    sheet_title = f"Skilling Report"
 
     service = build('sheets', 'v4', credentials=credentials)
 
