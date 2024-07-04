@@ -18,7 +18,7 @@ async def main() -> None:
     cursor.execute('SELECT * FROM players')
     existing_players = {row[1] for row in cursor.fetchall()}
 
-    result = await client.competitions.get_details(id=37530)
+    result = await client.competitions.get_details(id=49158)
 
     if result.is_ok:
         unwrapped_result = result.unwrap()
