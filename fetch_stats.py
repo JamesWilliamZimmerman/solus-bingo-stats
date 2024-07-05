@@ -74,6 +74,14 @@ async def main() -> None:
                 INSERT INTO clues (player_id, clue_type, clue_completions, rank, snapshot_date)
                 VALUES (?, ?, ?, ?, ?)
                 ''', (player_id, activity_name, clue_completions, rank, snapshot_date))
+            if 'Guardian' in activity_name:
+                ehb = 0.0
+                kills = activity['score']
+                rank = activity['rank']
+                cursor.execute('''
+                INSERT INTO bossing (player_id, boss_name, kills, ehb, rank, snapshot_date)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ''', (player_id, activity_name, kills, ehb, rank, snapshot_date))
 
         conn.commit()
 

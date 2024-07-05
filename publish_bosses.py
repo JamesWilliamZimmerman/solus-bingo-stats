@@ -2,6 +2,8 @@ import sqlite3
 import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from googleapiclient.http import HttpRequest
 import datetime
 
 def main() -> None:
@@ -75,10 +77,14 @@ def main() -> None:
     body = {
         'requests': requests
     }
-    response = service.spreadsheets().batchUpdate(
-        spreadsheetId=SPREADSHEET_ID,
-        body=body
-    ).execute()
+    try:
+        response = service.spreadsheets().batchUpdate(
+            spreadsheetId=SPREADSHEET_ID,
+            body=body
+        ).execute()
+    except HttpError:
+        response = None
+        print('sheet exists')
 
     num_rows = bossing_df.shape[0] + 1  
     num_rows = 2100
@@ -99,61 +105,63 @@ def main() -> None:
         body=body
     ).execute()
 
-    column_width_request = {
-        'updateDimensionProperties': {
-            'range': {
-                'sheetId': response['replies'][0]['addSheet']['properties']['sheetId'],
-                'dimension': 'COLUMNS',
-                'startIndex': 0,
-                'endIndex': len(bossing_df.columns)  
-            },
-            'properties': {
-                'pixelSize': 200  
-            },
-            'fields': 'pixelSize'
+    
+    if response != None:
+        column_width_request = {
+            'updateDimensionProperties': {
+                'range': {
+                    'sheetId': response['replies'][0]['addSheet']['properties']['sheetId'],
+                    'dimension': 'COLUMNS',
+                    'startIndex': 0,
+                    'endIndex': len(bossing_df.columns)  
+                },
+                'properties': {
+                    'pixelSize': 200  
+                },
+                'fields': 'pixelSize'
+            }
         }
-    }
-    
-    body = {
-        'requests': [column_width_request]
-    }
-    
-    response = service.spreadsheets().batchUpdate(
-        spreadsheetId=SPREADSHEET_ID,
-        body=body
-    ).execute()
+        
+        body = {
+            'requests': [column_width_request]
+        }
+        
+        response = service.spreadsheets().batchUpdate(
+            spreadsheetId=SPREADSHEET_ID,
+            body=body
+        ).execute()
 
-    efficiency_sheet_title = "Efficiency"
-    ehb_range_start = 'C2'
-    boss_ehb_values_start = 'L3'
-    letters = []
-    for index, column in enumerate(bossing_df.columns.tolist()):
-        if 'cumulative_kills' in column:
-            if 'Tempoross' not in column and 'Wintertodt' not in column and 'Zalcano' not in column:
-                letters.append(col_num_to_letter(index + 1))  
+        efficiency_sheet_title = "Efficiency"
+        ehb_range_start = 'C2'
+        boss_ehb_values_start = 'L3'
+        letters = []
+        for index, column in enumerate(bossing_df.columns.tolist()):
+            if 'cumulative_kills' in column:
+                if 'Tempoross' not in column and 'Wintertodt' not in column and 'Zalcano' not in column and 'Guardians Of The Rift' not in column:
+                    letters.append(col_num_to_letter(index + 1))  
 
-    formulas = []
-    for i in range(2, len(bossing_df) + 2):  
-        formula = "=SUM("
-        parts = []
-        for j, letter in enumerate(letters):
-            parts.append(f"('{sheet_title}'!{letter}{i}/{boss_ehb_values_start[0]}{j+3})")  
-        formula += ",".join(parts) + ")"
-        formulas.append(formula)
+        formulas = []
+        for i in range(2, len(bossing_df) + 2):  
+            formula = "=SUM("
+            parts = []
+            for j, letter in enumerate(letters):
+                parts.append(f"('{sheet_title}'!{letter}{i}/{boss_ehb_values_start[0]}{j+3})")  
+            formula += ",".join(parts) + ")"
+            formulas.append(formula)
 
-    efficiency_values = [[formulas[i - 2]] for i in range(2, len(bossing_df) + 2)]
-    efficiency_range = f"{efficiency_sheet_title}!{ehb_range_start}:{ehb_range_start[0]}{len(efficiency_values) + 1}"
+        efficiency_values = [[formulas[i - 2]] for i in range(2, len(bossing_df) + 2)]
+        efficiency_range = f"{efficiency_sheet_title}!{ehb_range_start}:{ehb_range_start[0]}{len(efficiency_values) + 1}"
 
-    body = {
-        'values': efficiency_values
-    }
+        body = {
+            'values': efficiency_values
+        }
 
-    result = service.spreadsheets().values().update(
-        spreadsheetId=SPREADSHEET_ID,
-        range=efficiency_range,
-        valueInputOption='USER_ENTERED',
-        body=body
-    ).execute()
+        result = service.spreadsheets().values().update(
+            spreadsheetId=SPREADSHEET_ID,
+            range=efficiency_range,
+            valueInputOption='USER_ENTERED',
+            body=body
+        ).execute()
 
 
     conn.close()

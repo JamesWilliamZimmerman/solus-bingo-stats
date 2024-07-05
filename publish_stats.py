@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 import datetime
 
 def main() -> None:
@@ -61,10 +62,14 @@ def main() -> None:
     body = {
         'requests': requests
     }
-    response = service.spreadsheets().batchUpdate(
-        spreadsheetId=SPREADSHEET_ID,
-        body=body
-    ).execute()
+    try:
+        response = service.spreadsheets().batchUpdate(
+            spreadsheetId=SPREADSHEET_ID,
+            body=body
+        ).execute()
+    except HttpError:
+        response = None
+        print('sheet exists')
 
     num_rows = stats_df.shape[0] + 1  
     num_rows = 2100

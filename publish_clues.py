@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 import datetime
 
 def main() -> None:
@@ -69,10 +70,14 @@ def main() -> None:
     body = {
         'requests': requests
     }
-    response = service.spreadsheets().batchUpdate(
-        spreadsheetId=SPREADSHEET_ID,
-        body=body
-    ).execute()
+    try:
+        response = service.spreadsheets().batchUpdate(
+            spreadsheetId=SPREADSHEET_ID,
+            body=body
+        ).execute()
+    except HttpError:
+        response = None
+        print('sheet exists')
 
     num_rows = clues_df.shape[0] + 1  
     num_rows = 2100
@@ -93,61 +98,62 @@ def main() -> None:
         body=body
     ).execute()
 
-    column_width_request = {
-        'updateDimensionProperties': {
-            'range': {
-                'sheetId': response['replies'][0]['addSheet']['properties']['sheetId'],
-                'dimension': 'COLUMNS',
-                'startIndex': 0,
-                'endIndex': len(clues_df.columns)  
-            },
-            'properties': {
-                'pixelSize': 200  
-            },
-            'fields': 'pixelSize'
+    if response != None:
+        column_width_request = {
+            'updateDimensionProperties': {
+                'range': {
+                    'sheetId': response['replies'][0]['addSheet']['properties']['sheetId'],
+                    'dimension': 'COLUMNS',
+                    'startIndex': 0,
+                    'endIndex': len(clues_df.columns)  
+                },
+                'properties': {
+                    'pixelSize': 200  
+                },
+                'fields': 'pixelSize'
+            }
         }
-    }
-    
-    body = {
-        'requests': [column_width_request]
-    }
-    
-    response = service.spreadsheets().batchUpdate(
-        spreadsheetId=SPREADSHEET_ID,
-        body=body
-    ).execute()
+        
+        body = {
+            'requests': [column_width_request]
+        }
+        
+        response = service.spreadsheets().batchUpdate(
+            spreadsheetId=SPREADSHEET_ID,
+            body=body
+        ).execute()
 
-    efficiency_sheet_title = "Efficiency"
-    ehc_range_start = 'E2'
-    clue_ehc_values_start = 'O4'
-    letters = []
-    for index, column in enumerate(clues_df.columns.tolist()):
-        if 'cumulative_clue_completions' in column:
-            if 'All' not in column and 'Beginner' not in column:
-                letters.append(col_num_to_letter(index + 1))  
+        efficiency_sheet_title = "Efficiency"
+        ehc_range_start = 'E2'
+        clue_ehc_values_start = 'O4'
+        letters = []
+        for index, column in enumerate(clues_df.columns.tolist()):
+            if 'cumulative_clue_completions' in column:
+                if 'All' not in column and 'Beginner' not in column:
+                    letters.append(col_num_to_letter(index + 1))  
 
-    formulas = []
-    for i in range(2, len(clues_df) + 2):  
-        formula = "=SUM("
-        parts = []
-        for j, letter in enumerate(letters):
-            parts.append(f"('{sheet_title}'!{letter}{i}/{clue_ehc_values_start[0]}{j+3})")  
-        formula += ",".join(parts) + ")"
-        formulas.append(formula)
+        formulas = []
+        for i in range(2, len(clues_df) + 2):  
+            formula = "=SUM("
+            parts = []
+            for j, letter in enumerate(letters):
+                parts.append(f"('{sheet_title}'!{letter}{i}/{clue_ehc_values_start[0]}{j+3})")  
+            formula += ",".join(parts) + ")"
+            formulas.append(formula)
 
-    efficiency_values = [[formulas[i - 2]] for i in range(2, len(clues_df) + 2)]
-    efficiency_range = f"{efficiency_sheet_title}!{ehc_range_start}:{ehc_range_start[0]}{len(efficiency_values) + 1}"
+        efficiency_values = [[formulas[i - 2]] for i in range(2, len(clues_df) + 2)]
+        efficiency_range = f"{efficiency_sheet_title}!{ehc_range_start}:{ehc_range_start[0]}{len(efficiency_values) + 1}"
 
-    body = {
-        'values': efficiency_values
-    }
+        body = {
+            'values': efficiency_values
+        }
 
-    result = service.spreadsheets().values().update(
-        spreadsheetId=SPREADSHEET_ID,
-        range=efficiency_range,
-        valueInputOption='USER_ENTERED',
-        body=body
-    ).execute()
+        result = service.spreadsheets().values().update(
+            spreadsheetId=SPREADSHEET_ID,
+            range=efficiency_range,
+            valueInputOption='USER_ENTERED',
+            body=body
+        ).execute()
 
     conn.close()
 
