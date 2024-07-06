@@ -123,37 +123,37 @@ def main() -> None:
             body=body
         ).execute()
 
-        efficiency_sheet_title = "Efficiency"
-        ehc_range_start = 'E2'
-        clue_ehc_values_start = 'O4'
-        letters = []
-        for index, column in enumerate(clues_df.columns.tolist()):
-            if 'cumulative_clue_completions' in column:
-                if 'All' not in column and 'Beginner' not in column:
-                    letters.append(col_num_to_letter(index + 1))  
+    efficiency_sheet_title = "Efficiency"
+    ehc_range_start = 'E2'
+    clue_ehc_values_start = 'I4'
+    letters = []
+    for index, column in enumerate(clues_df.columns.tolist()):
+        if 'cumulative_clue_completions' in column:
+            if 'All' not in column and 'Beginner' not in column:
+                letters.append(col_num_to_letter(index + 1))  
 
-        formulas = []
-        for i in range(2, len(clues_df) + 2):  
-            formula = "=SUM("
-            parts = []
-            for j, letter in enumerate(letters):
-                parts.append(f"('{sheet_title}'!{letter}{i}/{clue_ehc_values_start[0]}{j+3})")  
-            formula += ",".join(parts) + ")"
-            formulas.append(formula)
+    formulas = []
+    for i in range(2, len(clues_df) + 2):  
+        formula = "=SUM("
+        parts = []
+        for j, letter in enumerate(letters):
+            parts.append(f"('{sheet_title}'!{letter}{i}/{clue_ehc_values_start[0]}{j+4})")  
+        formula += ",".join(parts) + ")"
+        formulas.append(formula)
 
-        efficiency_values = [[formulas[i - 2]] for i in range(2, len(clues_df) + 2)]
-        efficiency_range = f"{efficiency_sheet_title}!{ehc_range_start}:{ehc_range_start[0]}{len(efficiency_values) + 1}"
+    efficiency_values = [[formulas[i - 2]] for i in range(2, len(clues_df) + 2)]
+    efficiency_range = f"{efficiency_sheet_title}!{ehc_range_start}:{ehc_range_start[0]}{len(efficiency_values) + 1}"
 
-        body = {
-            'values': efficiency_values
-        }
+    body = {
+        'values': efficiency_values
+    }
 
-        result = service.spreadsheets().values().update(
-            spreadsheetId=SPREADSHEET_ID,
-            range=efficiency_range,
-            valueInputOption='USER_ENTERED',
-            body=body
-        ).execute()
+    result = service.spreadsheets().values().update(
+        spreadsheetId=SPREADSHEET_ID,
+        range=efficiency_range,
+        valueInputOption='USER_ENTERED',
+        body=body
+    ).execute()
 
     conn.close()
 
